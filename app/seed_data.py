@@ -1,240 +1,243 @@
 from sqlalchemy.orm import Session
 from . import models, crud
 from datetime import datetime
+from .models import LocationType
 
 def seed_database(db: Session):
-    phuket = crud.create_region(db, {
-        "name": "Phuket",
-        "description": "Thailand's largest island, known for its stunning beaches, vibrant nightlife, and rich cultural heritage."
-    })
-    
-    krabi = crud.create_region(db, {
-        "name": "Krabi",
-        "description": "A province in southern Thailand known for its dramatic limestone cliffs, pristine beaches, and world-class rock climbing."
-    })
-
-    phuket_hotels = [
-        {
-            "name": "The Nai Harn",
-            "location": "Nai Harn Beach",
-            "rating": 4.8,
-            "price_per_night": 350.0,
-            "region_id": phuket.id
-        },
-        {
-            "name": "Trisara",
-            "location": "Phang Nga Bay",
-            "rating": 4.9,
-            "price_per_night": 800.0,
-            "region_id": phuket.id
-        },
-        {
-            "name": "The Slate",
-            "location": "Nai Yang Beach",
-            "rating": 4.7,
-            "price_per_night": 250.0,
-            "region_id": phuket.id
-        },
-        {
-            "name": "Keemala",
-            "location": "Kamala",
-            "rating": 4.8,
-            "price_per_night": 600.0,
-            "region_id": phuket.id
-        }
-    ]
-
-    krabi_hotels = [
-        {
-            "name": "Rayavadee",
-            "location": "Railay Beach",
-            "rating": 4.9,
-            "price_per_night": 700.0,
-            "region_id": krabi.id
-        },
-        {
-            "name": "Phulay Bay, A Ritz-Carlton Reserve",
-            "location": "Tubkaek Beach",
-            "rating": 4.9,
-            "price_per_night": 900.0,
-            "region_id": krabi.id
-        },
-        {
-            "name": "Centara Grand Beach Resort & Villas",
-            "location": "Klong Muang Beach",
-            "rating": 4.7,
-            "price_per_night": 300.0,
-            "region_id": krabi.id
-        },
-        {
-            "name": "Dusit Thani Krabi Beach Resort",
-            "location": "Klong Muang Beach",
-            "rating": 4.6,
-            "price_per_night": 280.0,
-            "region_id": krabi.id
-        }
-    ]
-
-    hotels = []
-    for hotel_data in phuket_hotels + krabi_hotels:
-        hotel = crud.create_hotel(db, hotel_data)
-        hotels.append(hotel)
-
-    activities = [
-        {
-            "name": "Phi Phi Islands Tour",
-            "description": "Full-day boat tour to the famous Phi Phi Islands, including snorkeling and beach visits",
-            "duration_hours": 8.0,
-            "price": 80.0
-        },
-        {
-            "name": "James Bond Island Tour",
-            "description": "Boat tour to the iconic limestone karsts featured in 'The Man with the Golden Gun'",
-            "duration_hours": 6.0,
-            "price": 60.0
-        },
-        {
-            "name": "Old Phuket Town Walking Tour",
-            "description": "Explore the historic Sino-Portuguese architecture and local markets",
-            "duration_hours": 3.0,
-            "price": 40.0
-        },
-        {
-            "name": "Railay Beach Rock Climbing",
-            "description": "Half-day rock climbing session with professional instructors",
-            "duration_hours": 4.0,
-            "price": 70.0
-        },
-        {
-            "name": "Hong Islands Kayaking",
-            "description": "Kayaking tour through the stunning lagoons and caves of Hong Islands",
-            "duration_hours": 5.0,
-            "price": 65.0
-        }
-    ]
-
-    created_activities = []
-    for activity_data in activities:
-        activity = crud.create_activity(db, activity_data)
-        created_activities.append(activity)
-
-    transfers = [
-        {
-            "from_location": "Phuket Airport",
-            "to_location": "Nai Harn Beach",
-            "mode": "Private Car",
-            "duration_minutes": 60,
-            "price": 40.0
-        },
-        {
-            "from_location": "Krabi Airport",
-            "to_location": "Railay Beach",
-            "mode": "Boat Transfer",
-            "duration_minutes": 45,
-            "price": 30.0
-        },
-        {
-            "from_location": "Phuket Town",
-            "to_location": "Patong Beach",
-            "mode": "Tuk-tuk",
-            "duration_minutes": 30,
-            "price": 20.0
-        }
-    ]
-
-    created_transfers = []
-    for transfer_data in transfers:
-        transfer = crud.create_transfer(db, transfer_data)
-        created_transfers.append(transfer)
-
-    itineraries = []
-    
-    itinerary_2n = crud.create_itinerary(db, {
-        "title": "Phuket Beach Escape",
-        "description": "A short but sweet beach getaway in Phuket",
-        "duration_nights": 2,
-        "region_id": phuket.id
-    })
-    
-    day1 = crud.create_day(db, {
-        "itinerary_id": itinerary_2n.id,
-        "hotel_id": hotels[0].id,
-        "day_number": 1
-    })
-    crud.add_activity_to_day(db, day1.id, created_activities[0].id)
-    
-    day2 = crud.create_day(db, {
-        "itinerary_id": itinerary_2n.id,
-        "hotel_id": hotels[0].id,
-        "day_number": 2
-    })
-    crud.add_activity_to_day(db, day2.id, created_activities[2].id)
-
-    itinerary_4n = crud.create_itinerary(db, {
-        "title": "Phuket & Krabi Explorer",
-        "description": "Explore the best of both Phuket and Krabi",
-        "duration_nights": 4,
-        "region_id": phuket.id
-    })
-    
-    for i in range(4):
-        day = crud.create_day(db, {
-            "itinerary_id": itinerary_4n.id,
-            "hotel_id": hotels[i % 2].id,
-            "day_number": i + 1
+    try:
+        # Create regions
+        phuket = crud.create_region(db, {
+            "name": "Phuket",
+            "description": "Thailand's largest island, known for its beaches, nightlife, and luxury resorts."
         })
-        if i == 0:
-            crud.add_activity_to_day(db, day.id, created_activities[0].id)
-        elif i == 2:
-            crud.add_activity_to_day(db, day.id, created_activities[3].id)
-
-    itinerary_6n = crud.create_itinerary(db, {
-        "title": "Ultimate Andaman Experience",
-        "description": "Comprehensive tour of Phuket and Krabi's highlights",
-        "duration_nights": 6,
-        "region_id": phuket.id
-    })
-    
-    for i in range(6):
-        day = crud.create_day(db, {
-            "itinerary_id": itinerary_6n.id,
-            "hotel_id": hotels[i % 4].id,
-            "day_number": i + 1
+        
+        krabi = crud.create_region(db, {
+            "name": "Krabi",
+            "description": "A province in southern Thailand known for its stunning limestone cliffs and islands."
         })
-        if i == 0:
-            crud.add_activity_to_day(db, day.id, created_activities[0].id)
-        elif i == 2:
-            crud.add_activity_to_day(db, day.id, created_activities[1].id)
-        elif i == 4:
-            crud.add_activity_to_day(db, day.id, created_activities[3].id)
-
-    itinerary_8n = crud.create_itinerary(db, {
-        "title": "Grand Andaman Tour",
-        "description": "The ultimate Andaman experience covering all major attractions",
-        "duration_nights": 8,
-        "region_id": phuket.id
-    })
-    
-    for i in range(8):
-        day = crud.create_day(db, {
-            "itinerary_id": itinerary_8n.id,
-            "hotel_id": hotels[i % 4].id,
-            "day_number": i + 1
-        })
-        if i == 0:
-            crud.add_activity_to_day(db, day.id, created_activities[0].id)
-        elif i == 2:
-            crud.add_activity_to_day(db, day.id, created_activities[1].id)
-        elif i == 4:
-            crud.add_activity_to_day(db, day.id, created_activities[2].id)
-        elif i == 6:
-            crud.add_activity_to_day(db, day.id, created_activities[3].id)
-
-    db.commit()
-    return {
-        "regions": [phuket, krabi],
-        "hotels": hotels,
-        "activities": created_activities,
-        "transfers": created_transfers,
-        "itineraries": [itinerary_2n, itinerary_4n, itinerary_6n, itinerary_8n]
-    } 
+        
+        # Create hotels in Phuket
+        phuket_hotels = [
+            {
+                "name": "The Nai Harn",
+                "location": "Nai Harn Beach",
+                "location_type": LocationType.BEACH,
+                "rating": 4.8,
+                "price_per_night": 350.0,
+                "region_id": phuket.id
+            },
+            {
+                "name": "Trisara",
+                "location": "Phuket",
+                "location_type": LocationType.BEACH,
+                "rating": 4.9,
+                "price_per_night": 800.0,
+                "region_id": phuket.id
+            },
+            {
+                "name": "The Slate",
+                "location": "Nai Yang Beach",
+                "location_type": LocationType.BEACH,
+                "rating": 4.7,
+                "price_per_night": 250.0,
+                "region_id": phuket.id
+            },
+            {
+                "name": "Keemala",
+                "location": "Kamala",
+                "location_type": LocationType.MOUNTAIN,
+                "rating": 4.8,
+                "price_per_night": 600.0,
+                "region_id": phuket.id
+            }
+        ]
+        
+        # Create hotels in Krabi
+        krabi_hotels = [
+            {
+                "name": "Rayavadee",
+                "location": "Railay Beach",
+                "location_type": LocationType.BEACH,
+                "rating": 4.9,
+                "price_per_night": 700.0,
+                "region_id": krabi.id
+            },
+            {
+                "name": "Phulay Bay",
+                "location": "Krabi",
+                "location_type": LocationType.BEACH,
+                "rating": 4.8,
+                "price_per_night": 500.0,
+                "region_id": krabi.id
+            },
+            {
+                "name": "Ritz-Carlton Reserve",
+                "location": "Phulay Bay",
+                "location_type": LocationType.BEACH,
+                "rating": 4.9,
+                "price_per_night": 900.0,
+                "region_id": krabi.id
+            },
+            {
+                "name": "Centara Grand Beach Resort",
+                "location": "Klong Muang Beach",
+                "location_type": LocationType.BEACH,
+                "rating": 4.7,
+                "price_per_night": 300.0,
+                "region_id": krabi.id
+            }
+        ]
+        
+        # Create all hotels
+        hotels = []
+        for hotel_data in phuket_hotels + krabi_hotels:
+            hotel = crud.create_hotel(db, hotel_data)
+            hotels.append(hotel)
+        
+        # Create activities
+        activities = [
+            {
+                "name": "Phi Phi Islands Tour",
+                "description": "Full-day boat tour to Phi Phi Islands with snorkeling and lunch",
+                "duration_hours": 8.0,
+                "price": 100.0
+            },
+            {
+                "name": "James Bond Island Tour",
+                "description": "Visit the famous James Bond Island and surrounding limestone caves",
+                "duration_hours": 6.0,
+                "price": 80.0
+            },
+            {
+                "name": "Elephant Sanctuary Visit",
+                "description": "Ethical elephant experience with feeding and bathing",
+                "duration_hours": 4.0,
+                "price": 120.0
+            },
+            {
+                "name": "Old Town Walking Tour",
+                "description": "Explore Phuket's historic old town with local guide",
+                "duration_hours": 3.0,
+                "price": 50.0
+            },
+            {
+                "name": "Tiger Cave Temple",
+                "description": "Visit the famous temple and climb 1,237 steps for panoramic views",
+                "duration_hours": 4.0,
+                "price": 40.0
+            }
+        ]
+        
+        created_activities = []
+        for activity_data in activities:
+            activity = crud.create_activity(db, activity_data)
+            created_activities.append(activity)
+        
+        # Create transfers
+        transfers = [
+            {
+                "from_location": "Phuket Airport",
+                "to_location": "Patong Beach",
+                "mode": "PRIVATE_CAR",
+                "duration_minutes": 45,
+                "price": 50.0
+            },
+            {
+                "from_location": "Krabi Airport",
+                "to_location": "Railay Beach",
+                "mode": "SPEEDBOAT",
+                "duration_minutes": 30,
+                "price": 40.0
+            },
+            {
+                "from_location": "Phuket",
+                "to_location": "Krabi",
+                "mode": "FERRY",
+                "duration_minutes": 120,
+                "price": 30.0
+            }
+        ]
+        
+        created_transfers = []
+        for transfer_data in transfers:
+            transfer = crud.create_transfer(db, transfer_data)
+            created_transfers.append(transfer)
+        
+        # Create itineraries
+        itineraries = [
+            {
+                "title": "Phuket Weekend Getaway",
+                "description": "2-night luxury stay in Phuket",
+                "duration_nights": 2,
+                "region_id": phuket.id
+            },
+            {
+                "title": "Phuket & Krabi Explorer",
+                "description": "4-night adventure in both regions",
+                "duration_nights": 4,
+                "region_id": phuket.id
+            },
+            {
+                "title": "Southern Thailand Discovery",
+                "description": "6-night comprehensive tour",
+                "duration_nights": 6,
+                "region_id": phuket.id
+            },
+            {
+                "title": "Ultimate Thailand Experience",
+                "description": "8-night luxury vacation",
+                "duration_nights": 8,
+                "region_id": phuket.id
+            }
+        ]
+        
+        created_itineraries = []
+        for itinerary_data in itineraries:
+            itinerary = crud.create_itinerary(db, itinerary_data)
+            created_itineraries.append(itinerary)
+            
+            # Create days for each itinerary
+            for day_num in range(1, itinerary_data["duration_nights"] + 1):
+                # Select hotel based on day number and region
+                if day_num <= 2:
+                    hotel = next(h for h in hotels if h.region_id == phuket.id)
+                else:
+                    hotel = next(h for h in hotels if h.region_id == krabi.id)
+                
+                day = crud.create_day(db, {
+                    "day_number": day_num,
+                    "itinerary_id": itinerary.id,
+                    "hotel_id": hotel.id
+                })
+                
+                # Add activities to days
+                if day_num == 1:
+                    crud.create_day_activity(db, {
+                        "day_id": day.id,
+                        "activity_id": created_activities[0].id
+                    })
+                elif day_num == 2:
+                    crud.create_day_activity(db, {
+                        "day_id": day.id,
+                        "activity_id": created_activities[1].id
+                    })
+                
+                # Add transfers between regions
+                if day_num == 3:
+                    crud.create_day_transfer(db, {
+                        "day_id": day.id,
+                        "transfer_id": created_transfers[2].id
+                    })
+        
+        db.commit()
+        return {
+            "regions": 2,
+            "hotels": len(hotels),
+            "activities": len(created_activities),
+            "transfers": len(created_transfers),
+            "itineraries": len(created_itineraries)
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error seeding database: {str(e)}") 

@@ -15,6 +15,7 @@ class ItineraryRecommender:
         self.itineraries = self._load_itineraries()
         self.regions = self._load_regions()
         self.hotels = self._load_hotels()
+        self.activities = self._load_activities()
 
     def _load_itineraries(self) -> List[models.Itinerary]:
         return self.db.query(models.Itinerary).all()
@@ -25,19 +26,22 @@ class ItineraryRecommender:
     def _load_hotels(self) -> List[models.Hotel]:
         return self.db.query(models.Hotel).all()
 
+    def _load_activities(self) -> List[models.Activity]:
+        return self.db.query(models.Activity).all()
+
     def _calculate_similarity_score(self, target_itinerary: models.Itinerary, 
                                   candidate_itinerary: models.Itinerary) -> float:
         score = 0.0
         
         if target_itinerary.duration_nights == candidate_itinerary.duration_nights:
-            score += 0.4
+            score += 0.3
         else:
             diff = abs(target_itinerary.duration_nights - candidate_itinerary.duration_nights)
-            score += max(0, 0.4 - (diff * 0.1))
+            score += max(0, 0.3 - (diff * 0.1))
 
         # Region similarity
         if target_itinerary.region_id == candidate_itinerary.region_id:
-            score += 0.3
+            score += 0.2
 
         # Hotel rating similarity
         target_hotels = [day.hotel for day in target_itinerary.days]
@@ -47,7 +51,28 @@ class ItineraryRecommender:
             avg_target_rating = np.mean([h.rating for h in target_hotels])
             avg_candidate_rating = np.mean([h.rating for h in candidate_hotels])
             rating_diff = abs(avg_target_rating - avg_candidate_rating)
-            score += max(0, 0.3 - (rating_diff * 0.1))
+            score += max(0, 0.2 - (rating_diff * 0.1))
+
+        # Activity similarity
+        target_activities = []
+        candidate_activities = []
+        
+        for day in target_itinerary.days:
+            target_activities.extend([da.activity for da in day.activities])
+        for day in candidate_itinerary.days:
+            candidate_activities.extend([da.activity for da in day.activities])
+        
+        if target_activities and candidate_activities:
+            # Consider activity duration and price
+            avg_target_duration = np.mean([a.duration_hours for a in target_activities])
+            avg_candidate_duration = np.mean([a.duration_hours for a in candidate_activities])
+            duration_diff = abs(avg_target_duration - avg_candidate_duration)
+            score += max(0, 0.15 - (duration_diff * 0.05))
+
+            avg_target_price = np.mean([a.price for a in target_activities])
+            avg_candidate_price = np.mean([a.price for a in candidate_activities])
+            price_diff = abs(avg_target_price - avg_candidate_price)
+            score += max(0, 0.15 - (price_diff * 0.05))
 
         return score
 
@@ -56,6 +81,7 @@ class ItineraryRecommender:
                             region_id: Optional[int] = None,
                             min_rating: Optional[float] = None,
                             max_price: Optional[float] = None,
+                            activity_types: Optional[List[str]] = None,
                             limit: int = 5) -> List[Dict]:
         
         target_itinerary = models.Itinerary(
@@ -75,6 +101,7 @@ class ItineraryRecommender:
                     
             if max_price:
                 total_price = sum(day.hotel.price_per_night for day in itinerary.days)
+                total_price += sum(da.activity.price for day in itinerary.days for da in day.activities)
                 if total_price > max_price:
                     continue
 
@@ -88,13 +115,28 @@ class ItineraryRecommender:
             hotel_ratings = [day.hotel.rating for day in itinerary.days]
             avg_rating = float(np.nanmean(hotel_ratings)) if hotel_ratings else 0.0
             
+            # Get activities for each day
+            daily_activities = {}
+            for day in itinerary.days:
+                daily_activities[day.day_number] = [
+                    {
+                        "name": da.activity.name,
+                        "description": da.activity.description,
+                        "duration_hours": da.activity.duration_hours,
+                        "price": float(da.activity.price)
+                    }
+                    for da in day.activities
+                ]
+            
             recommendations.append({
                 "itinerary_id": itinerary.id,
                 "title": itinerary.title,
                 "duration_nights": itinerary.duration_nights,
                 "region": next(r.name for r in self.regions if r.id == itinerary.region_id),
                 "hotels": [day.hotel.name for day in itinerary.days],
-                "total_price": float(sum(day.hotel.price_per_night for day in itinerary.days)),
+                "activities": daily_activities,
+                "total_price": float(sum(day.hotel.price_per_night for day in itinerary.days) + 
+                                   sum(da.activity.price for day in itinerary.days for da in day.activities)),
                 "average_rating": avg_rating,
                 "similarity_score": float(score)
             })
@@ -118,7 +160,7 @@ async def get_recommended_itineraries(duration_nights: int, limit: int = 5) -> L
         limit: Maximum number of itineraries to return (default: 5)
     
     Returns:
-        List of recommended itineraries with details
+        List of recommended itineraries with details including activities
     """
     if duration_nights < 2 or duration_nights > 8:
         return [{"error": "Duration must be between 2 and 8 nights"}]
@@ -142,6 +184,7 @@ async def get_recommendations(
     region_id: Optional[int] = None,
     min_rating: Optional[float] = None,
     max_price: Optional[float] = None,
+    activity_types: Optional[List[str]] = None,
     limit: int = Query(5, ge=1, le=10),
     db: Session = Depends(get_db)
 ):
@@ -154,6 +197,7 @@ async def get_recommendations(
         region_id=region_id,
         min_rating=min_rating,
         max_price=max_price,
+        activity_types=activity_types,
         limit=limit
     )
     return {"recommendations": recommendations}
