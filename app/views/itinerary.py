@@ -1,3 +1,4 @@
+from sqlite3 import IntegrityError
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -136,6 +137,20 @@ class ItineraryView(BaseView):
             days_data: List[schemas.DayCreate],
             db: Session = Depends(get_db)
         ):
+            """
+            Add multiple days to an itinerary.
+            
+            Args:
+                itinerary_id (int): The ID of the itinerary
+                days_data (List[DayCreate]): List of day data to create
+                db (Session): Database session
+                
+            Returns:
+                List[Day]: List of created days
+                
+            Raises:
+                HTTPException: If the itinerary or any hotel doesn't exist
+            """
             try:
                 if not self.crud.get_itinerary(db, itinerary_id=itinerary_id):
                     self.handle_not_found(itinerary_id, "Itinerary")
@@ -146,7 +161,9 @@ class ItineraryView(BaseView):
                 
                 created_days = []
                 for day_data in days_data:
-                    day = crud.create_day(db, day_data=day_data.model_dump())
+                    day_data_dict = day_data.model_dump()
+                    day_data_dict["itinerary_id"] = itinerary_id
+                    day = crud.create_day(db, day_data=day_data_dict)
                     created_days.append(day)
                 return created_days
             except IntegrityError as e:
@@ -184,25 +201,19 @@ class ItineraryView(BaseView):
 
         @self.router.get("/{itinerary_id}/days", response_model=List[schemas.Day])
         def get_itinerary_days(itinerary_id: int, db: Session = Depends(get_db)):
-            if not self.crud.get_itinerary(db, itinerary_id=itinerary_id):
-                self.handle_not_found(itinerary_id, "Itinerary")
-            return crud.get_days_by_itinerary(db, itinerary_id=itinerary_id)
-
-        @self.router.get("/recommended/{duration_nights}", response_model=List[schemas.Itinerary])
-        def get_recommended_itineraries(
-            duration_nights: int,
-            limit: int = Query(5, ge=1, le=10, description="Maximum number of recommendations to return"),
-            db: Session = Depends(get_db)
-        ):
             """
-            Get recommended itineraries for a specific duration.
+            Get all days for an itinerary.
             
             Args:
-                duration_nights (int): Number of nights for the itinerary
-                limit (int): Maximum number of recommendations to return
+                itinerary_id (int): The ID of the itinerary
                 db (Session): Database session
                 
             Returns:
-                List[Itinerary]: List of recommended itineraries
+                List[Day]: List of days in the itinerary
+                
+            Raises:
+                HTTPException: If the itinerary doesn't exist
             """
-            return self.crud.get_recommended_itineraries(db, duration_nights=duration_nights, limit=limit) 
+            if not self.crud.get_itinerary(db, itinerary_id=itinerary_id):
+                self.handle_not_found(itinerary_id, "Itinerary")
+            return crud.get_days_by_itinerary(db, itinerary_id=itinerary_id) 

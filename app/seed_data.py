@@ -5,7 +5,7 @@ from .models import LocationType
 
 def seed_database(db: Session):
     try:
-        # Create regions
+        # Demo regions
         phuket = crud.create_region(db, {
             "name": "Phuket",
             "description": "Thailand's largest island, known for its beaches, nightlife, and luxury resorts."
@@ -16,7 +16,7 @@ def seed_database(db: Session):
             "description": "A province in southern Thailand known for its stunning limestone cliffs and islands."
         })
         
-        # Create hotels in Phuket
+        # Demo hotels in Phuket
         phuket_hotels = [
             {
                 "name": "The Nai Harn",
@@ -52,7 +52,7 @@ def seed_database(db: Session):
             }
         ]
         
-        # Create hotels in Krabi
+        # Demo hotels in Krabi
         krabi_hotels = [
             {
                 "name": "Rayavadee",
@@ -88,13 +88,13 @@ def seed_database(db: Session):
             }
         ]
         
-        # Create all hotels
+        # Demo hotels
         hotels = []
         for hotel_data in phuket_hotels + krabi_hotels:
             hotel = crud.create_hotel(db, hotel_data)
             hotels.append(hotel)
         
-        # Create activities
+        # Demo activities
         activities = [
             {
                 "name": "Phi Phi Islands Tour",
@@ -133,7 +133,7 @@ def seed_database(db: Session):
             activity = crud.create_activity(db, activity_data)
             created_activities.append(activity)
         
-        # Create transfers
+        # Demo transfers
         transfers = [
             {
                 "from_location": "Phuket Airport",
@@ -163,7 +163,7 @@ def seed_database(db: Session):
             transfer = crud.create_transfer(db, transfer_data)
             created_transfers.append(transfer)
         
-        # Create itineraries
+        # Demo itineraries
         itineraries = [
             {
                 "title": "Phuket Weekend Getaway",
@@ -196,9 +196,7 @@ def seed_database(db: Session):
             itinerary = crud.create_itinerary(db, itinerary_data)
             created_itineraries.append(itinerary)
             
-            # Create days for each itinerary
             for day_num in range(1, itinerary_data["duration_nights"] + 1):
-                # Select hotel based on day number and region
                 if day_num <= 2:
                     hotel = next(h for h in hotels if h.region_id == phuket.id)
                 else:
@@ -210,7 +208,6 @@ def seed_database(db: Session):
                     "hotel_id": hotel.id
                 })
                 
-                # Add activities to days
                 if day_num == 1:
                     crud.create_day_activity(db, {
                         "day_id": day.id,
@@ -222,7 +219,6 @@ def seed_database(db: Session):
                         "activity_id": created_activities[1].id
                     })
                 
-                # Add transfers between regions
                 if day_num == 3:
                     crud.create_day_transfer(db, {
                         "day_id": day.id,

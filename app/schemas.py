@@ -115,12 +115,23 @@ class DayBase(BaseModel):
     day_number: int
     hotel_id: int
 
-class DayCreate(DayBase):
-    pass
+class DayCreate(BaseModel):
+    """Schema for creating a new day in an itinerary."""
+    itinerary_id: int
+    hotel_id: int
+    day_number: int
+
+    class Config:
+        from_attributes = True
 
 class DayUpdate(BaseModel):
-    day_number: Optional[int] = None
+    """Schema for updating an existing day."""
     hotel_id: Optional[int] = None
+    day_number: Optional[int] = None
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 class Day(DayBase):
     id: int

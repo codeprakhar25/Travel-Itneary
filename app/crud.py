@@ -5,6 +5,7 @@ from typing import List, Optional
 from datetime import datetime
 from .models import LocationType
 
+# Region Crud Operations
 def create_region(db: Session, region_data: dict):
     db_region = models.Region(**region_data)
     db.add(db_region)
@@ -34,6 +35,8 @@ def delete_region(db: Session, region_id: int):
         db.commit()
     return db_region
 
+
+# Hotel Crud Operations
 def create_hotel(db: Session, hotel_data: dict):
     db_hotel = models.Hotel(
         name=hotel_data["name"],
@@ -73,9 +76,6 @@ def get_hotels(
     
     return query.offset(skip).limit(limit).all()
 
-def get_hotels_by_region(db: Session, region_id: int, skip: int = 0, limit: int = 100):
-    return db.query(models.Hotel).filter(models.Hotel.region_id == region_id).offset(skip).limit(limit).all()
-
 def update_hotel(db: Session, hotel_id: int, hotel_data: dict):
     db_hotel = db.query(models.Hotel).filter(models.Hotel.id == hotel_id).first()
     if db_hotel:
@@ -92,6 +92,7 @@ def delete_hotel(db: Session, hotel_id: int):
         db.commit()
     return db_hotel
 
+# Activity Crud Operations
 def create_activity(db: Session, activity_data: dict):
     db_activity = models.Activity(**activity_data)
     db.add(db_activity)
@@ -134,6 +135,8 @@ def delete_activity(db: Session, activity_id: int):
         db.commit()
     return db_activity
 
+
+# Transfer Crud Operations
 def create_transfer(db: Session, transfer_data: dict):
     db_transfer = models.Transfer(**transfer_data)
     db.add(db_transfer)
@@ -182,6 +185,8 @@ def delete_transfer(db: Session, transfer_id: int):
         db.commit()
     return db_transfer
 
+
+# Day Crud Operations
 def create_day(db: Session, day_data: dict):
     db_day = models.Day(**day_data)
     db.add(db_day)
@@ -245,6 +250,8 @@ def delete_day_transfer(db: Session, day_transfer_id: int):
         db.commit()
     return db_day_transfer
 
+
+# Itinerary Crud Operations
 def create_itinerary(db: Session, itinerary_data: dict):
     db_itinerary = models.Itinerary(**itinerary_data)
     db.add(db_itinerary)
@@ -323,7 +330,7 @@ def get_recommended_itineraries(
     Returns:
         List[Itinerary]: List of recommended itineraries
     """
-    # Get all itineraries with the specified duration
+
     itineraries = db.query(models.Itinerary)\
         .filter(models.Itinerary.duration_nights == duration_nights)\
         .options(
@@ -333,10 +340,8 @@ def get_recommended_itineraries(
         )\
         .all()
     
-    # Filter itineraries based on activity mix and transfer availability
     valid_itineraries = []
     for itinerary in itineraries:
-        # Check if each day has the right number of activities
         valid_activity_mix = True
         for day in itinerary.days:
             activity_count = len(day.activities)
@@ -347,13 +352,11 @@ def get_recommended_itineraries(
         if not valid_activity_mix:
             continue
             
-        # Check if transfers are available between locations
         valid_transfers = True
         for i in range(len(itinerary.days) - 1):
             current_hotel = itinerary.days[i].hotel
             next_hotel = itinerary.days[i + 1].hotel
             
-            # Check if there's a transfer between these locations
             transfer = db.query(models.Transfer)\
                 .filter(
                     and_(
@@ -370,8 +373,6 @@ def get_recommended_itineraries(
         if valid_transfers:
             valid_itineraries.append(itinerary)
     
-    # Sort by rating and return top recommendations
-    valid_itineraries.sort(key=lambda x: x.rating, reverse=True)
     return valid_itineraries[:limit]
 
 def get_days(

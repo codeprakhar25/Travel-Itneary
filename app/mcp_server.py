@@ -39,11 +39,9 @@ class ItineraryRecommender:
             diff = abs(target_itinerary.duration_nights - candidate_itinerary.duration_nights)
             score += max(0, 0.3 - (diff * 0.1))
 
-        # Region similarity
         if target_itinerary.region_id == candidate_itinerary.region_id:
             score += 0.2
 
-        # Hotel rating similarity
         target_hotels = [day.hotel for day in target_itinerary.days]
         candidate_hotels = [day.hotel for day in candidate_itinerary.days]
         
@@ -53,7 +51,6 @@ class ItineraryRecommender:
             rating_diff = abs(avg_target_rating - avg_candidate_rating)
             score += max(0, 0.2 - (rating_diff * 0.1))
 
-        # Activity similarity
         target_activities = []
         candidate_activities = []
         
@@ -63,7 +60,6 @@ class ItineraryRecommender:
             candidate_activities.extend([da.activity for da in day.activities])
         
         if target_activities and candidate_activities:
-            # Consider activity duration and price
             avg_target_duration = np.mean([a.duration_hours for a in target_activities])
             avg_candidate_duration = np.mean([a.duration_hours for a in candidate_activities])
             duration_diff = abs(avg_target_duration - avg_candidate_duration)
@@ -115,7 +111,6 @@ class ItineraryRecommender:
             hotel_ratings = [day.hotel.rating for day in itinerary.days]
             avg_rating = float(np.nanmean(hotel_ratings)) if hotel_ratings else 0.0
             
-            # Get activities for each day
             daily_activities = {}
             for day in itinerary.days:
                 daily_activities[day.day_number] = [

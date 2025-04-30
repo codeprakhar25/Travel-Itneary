@@ -1,3 +1,4 @@
+from sqlite3 import IntegrityError
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
